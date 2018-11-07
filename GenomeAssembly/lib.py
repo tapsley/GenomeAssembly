@@ -1,9 +1,30 @@
 """
+Given a string and a width provide a iterable class that will
+loop through all the frames that exist in the string
+"""
+class window:
+    def __init__(self, string, width):
+        self.string = string
+        self.width = width
+        self.index = -1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.index += 1
+
+        if self.index <= len(self.string) - self.width:
+            return self.string[self.index:self.index + self.width]
+        else:
+            self.index = -1
+            raise StopIteration
+
+
+"""
 Given a string containing the file path to a fasta file
 Return a string of genes
 """
-
-
 def fasta_to_string(file_name):
     lines = []
     with open(file_name, 'r') as f:
