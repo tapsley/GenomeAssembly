@@ -2,6 +2,8 @@
 Given a string and a width provide a iterable class that will
 loop through all the frames that exist in the string
 """
+import sys
+
 class window:
     def __init__(self, string, width):
         self.string = string
@@ -84,8 +86,10 @@ def generateContigs(dna):
 
 # Given a start node, a deBruijn graph, the degrees, and an empty path array
 # Returns an Eulerian Path
+depth = 0
 
 def find_eulerian_path(node, graph, degrees, path):
+    sys.setrecursionlimit(10000000)
     path += [node] # Same as cycle.append(node)
 
     if node not in degrees or degrees[node][1] == 0:
@@ -95,11 +99,14 @@ def find_eulerian_path(node, graph, degrees, path):
         temp_node = graph[node][0]
         graph[node].remove(temp_node)
 
+        #find_eulerian_path.depth += 1
+        #print(find_eulerian_path.depth)
         sub_path = find_eulerian_path( temp_node, graph, degrees, [])
 
         path = path[:1] + sub_path + path[1:]
 
     return path
+#find_eulerian_path.depth = 0
 
 # Given the degrees of a graph
 # returns the start node
