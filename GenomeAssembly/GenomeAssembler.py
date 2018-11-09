@@ -2,6 +2,7 @@ from random import randint
 
 import sys
 import time
+import csv
 import numpy as np
 
 from lib import fasta_to_string
@@ -25,9 +26,10 @@ class assembly():
         self.genome = ""
 
         # Contigs
-        self.contigs = generate_contigs_graph(self.kmers)
+        #self.contigs = generate_contigs_graph(self.kmers)
+        self.contigs = generateContigs(self.kmers)
         self.contig_len = len(self.contigs)
-        self.n50 = calc_n50(self.contigs)
+        self.n50, self.contig_max = calc_n50_and_max(self.contigs)
 
         # Genome
         self.genome = assemble_genome(self.kmers)
@@ -41,10 +43,10 @@ class assembly():
         return
 
 
-def calc_n50(contigs):
+def calc_n50_and_max(contigs):
     lengths = [len(contig) for contig in contigs]
     median = np.ma.median(lengths)
-    return median
+    return median, np.max(lengths)
 
 
 def fasta_to_kmer_counts(fasta_lines, k):
@@ -70,13 +72,17 @@ def remove_bottom_percent(kmers, percent):
 
 
 def random_search(fasta_lines, find_best_error=False):
-    k_min = 15 # Much smaller than this will cause stack overflow issues! Linux works better than Windows
+    results = []
+    k_min = 5 #15 # Much smaller than this will cause stack overflow issues! Linux works better than Windows
     k_max = int(len(fasta_lines[0]) * .95) # Max size is 80% of line length
 
-    max_percent = .1
+    if k_max > 34:
+        k_max = 34
+
+    max_percent = .15
 
     best_result = None
-    step = .001 # Remove bottom 1% more each iteration
+    step = .025 # Remove bottom 1% more each iteration
 
     for k in range(k_min, k_max):
         percent = 0
@@ -92,11 +98,12 @@ def random_search(fasta_lines, find_best_error=False):
             kmers = remove_bottom_percent(kmer_count_list, percent)
 
             result = assembly(kmers, k, percent)
-            print(k, result.n50, result.percent, result.contig_len)
+            results.append(result)
+            print(k, result.n50, result.contig_len, result.genome_len, percent, sep="\t")
 
-
+                # Watch for the <=
             if best_result == None or\
-                    best_result.n50 < result.n50 or\
+                    best_result.n50 <= result.n50 or\
                     best_result.n50 == result.n50 and best_result.genome_len < result.genome_len:
 
                 best_result = result
@@ -105,14 +112,14 @@ def random_search(fasta_lines, find_best_error=False):
                 if percent > max_percent:
                     break
             else:
-                if best_result == None:
+                if best_result is None:
                     best_result = result
                 break
 
             if not find_best_error:
                 break
 
-    return best_result
+    return best_result, results
 
 
 
@@ -128,8 +135,50 @@ def assemble_genome(kmers):
 
     return assembled_genome
 
+def write_results_to_csv(file_name, results, best_result):
+    file = open(file_name, "w", newline='')
+    csv_writer = csv.writer(file)
+
+    header = ["K", "N50", "Contig Count", "Longest Contig Length", "Contigs", "Bottom % Removed", "Genome Length", "Genome"]
+    rows = [["*The first result is the best result!"], header]
+
+    row = []
+    row.append(best_result.k)
+    row.append(best_result.n50)
+    row.append(best_result.contig_len)
+    row.append(best_result.contig_max)
+    row.append("\n".join(best_result.contigs))
+    row.append(best_result.percent)
+    row.append(best_result.genome_len)
+    row.append(best_result.genome.strip())
+    rows.append(row)
+
+    rows.append(["-------","-------","-------","-------","-------","-------","-------","-------"])
+
+    for r in results:
+        row = []
+        row.append(r.k)
+        row.append(r.n50)
+        row.append(r.contig_len)
+        row.append(r.contig_max)
+        row.append("\n".join(r.contigs))
+        row.append(r.percent)
+        row.append(r.genome_len)
+        row.append(r.genome.strip())
+
+        rows.append(row)
+
+    csv_writer.writerows(rows)
+    file.close()
+    pass
+
 def main():
+
+
+
+    #fasta_lines = fasta_to_string("files/synthetic.example.noerror.small.fasta")
     #fasta_lines = fasta_to_string("files/synthetic.noerror.small.fasta")
+    #fasta_lines = fasta_to_string("files/synthetic.noerror.large.fasta")
     #fasta_lines = fasta_to_string("files/example.data.fasta")
     fasta_lines = fasta_to_string("files/real.error.large.fasta")
     #fasta_lines = fasta_to_string("files/real.error.small.fasta")
@@ -137,14 +186,18 @@ def main():
 
 
     start = time.time()
-    result = random_search(fasta_lines, find_best_error=True)
+    best_result, results = random_search(fasta_lines, find_best_error=True)
 
     print()
-    result.print()
+    best_result.print()
 
     print("")
     print(time.time() - start)
 
+    file_name = "results/real.error.large.csv"
+    print("Writing to file:", file_name)
+    write_results_to_csv(file_name, results, best_result)
+    print("Done!")
 
 
 
@@ -152,5 +205,3 @@ if __name__ == "__main__":
     sys.setrecursionlimit(10000000)
     main()
 
-# Todo: remove errors by removing infrequent kmers
-# Todo: automate testing and data collecting, use a random algorithm to find local max n50
