@@ -26,8 +26,8 @@ class assembly():
         self.genome = ""
 
         # Contigs
-        #self.contigs = generate_contigs_graph(self.kmers)
-        self.contigs = generateContigs(self.kmers)
+        self.contigs = generate_contigs_graph(self.kmers)
+        #self.contigs = generateContigs(self.kmers)
         self.contig_len = len(self.contigs)
         self.n50, self.contig_max = calc_n50_and_max(self.contigs)
 
@@ -73,11 +73,11 @@ def remove_bottom_percent(kmers, percent):
 
 def random_search(fasta_lines, find_best_error=False):
     results = []
-    k_min = 5 #15 # Much smaller than this will cause stack overflow issues! Linux works better than Windows
+    k_min = 13 #15 # Much smaller than this will cause stack overflow issues! Linux works better than Windows
     k_max = int(len(fasta_lines[0]) * .95) # Max size is 80% of line length
 
-    if k_max > 34:
-        k_max = 34
+    #if k_max > 50:
+     #   k_max = 50
 
     max_percent = .15
 
@@ -103,7 +103,7 @@ def random_search(fasta_lines, find_best_error=False):
 
                 # Watch for the <=
             if best_result == None or\
-                    best_result.n50 <= result.n50 or\
+                    best_result.n50 < result.n50 or\
                     best_result.n50 == result.n50 and best_result.genome_len < result.genome_len:
 
                 best_result = result
