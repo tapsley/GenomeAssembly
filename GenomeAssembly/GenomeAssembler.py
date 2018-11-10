@@ -101,10 +101,10 @@ def random_search(fasta_lines, find_best_error=False):
             results.append(result)
             print(k, result.n50, result.contig_len, result.genome_len, percent, sep="\t")
 
-                # Watch for the <=
+
             if best_result == None or\
                     best_result.n50 < result.n50 or\
-                    best_result.n50 == result.n50 and best_result.genome_len < result.genome_len:
+                    best_result.n50 == result.n50 and best_result.contig_max < result.contig_max:
 
                 best_result = result
 
@@ -180,23 +180,27 @@ def main():
     #fasta_lines = fasta_to_string("files/synthetic.noerror.small.fasta")
     #fasta_lines = fasta_to_string("files/synthetic.noerror.large.fasta")
     #fasta_lines = fasta_to_string("files/example.data.fasta")
-    fasta_lines = fasta_to_string("files/real.error.large.fasta")
+    #fasta_lines = fasta_to_string("files/real.error.large.fasta")
     #fasta_lines = fasta_to_string("files/real.error.small.fasta")
 
+    tests = [
+        ("files/example.data.fasta", "results/example.data.csv", False),
+        ("files/synthetic.example.noerror.small.fasta", "results/synthetic.example.noerror.small.csv", False),
+        ("files/synthetic.noerror.small.fasta", "results/synthetic.noerror.small.csv", False),
+        ("files/synthetic.noerror.large.fasta", "results/synthetic.noerror.large.csv", False),
+        ("files/real.error.small.fasta", "results/real.error.small.csv", True),
+        ("files/real.error.large.fasta", "results/real.error.large.csv", True)
+    ]
 
 
-    start = time.time()
-    best_result, results = random_search(fasta_lines, find_best_error=True)
+    test = tests[5]
 
-    print()
-    best_result.print()
+    fasta_lines = fasta_to_string(test[0])
+    best_result, results = random_search(fasta_lines, find_best_error=test[2])
 
-    print("")
-    print(time.time() - start)
 
-    file_name = "results/real.error.large.csv"
-    print("Writing to file:", file_name)
-    write_results_to_csv(file_name, results, best_result)
+    print("Writing to file:", test[1])
+    write_results_to_csv(test[1], results, best_result)
     print("Done!")
 
 
